@@ -24,6 +24,8 @@
 
 Candidate Baseline:
 Projection:arXiv:2204.10776v2 [cs.CV] 27 Jan 2023
+Generation:https://www.bilibili.com/video/BV1Yr421775V/?spm_id_from=333.1007.top_right_bar_window_history.content.click&vd_source=c2f7388c7b279132a2d3049f97303966
+
 Generation:欢迎补充！
 
 See wiki for details, have fun🥳.
