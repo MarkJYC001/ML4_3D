@@ -1,73 +1,76 @@
 import pygame
 import time
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 import numpy as np
 
+# Initialize Pygame
 pygame.init()
 
 # Constants
-SCREEN_WIDTH = 1200
-SCREEN_HEIGHT = 800
-SIM_WIDTH = 800
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+PLOT_WIDTH = 600
+PLOT_HEIGHT = 600
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLACK = (0, 0, 0)
 BUTTON_COLOR = (0, 128, 255)
 BUTTON_HOVER_COLOR = (0, 64, 128)
-GRAVITY_MIN = 9.0
-GRAVITY_MAX = 10.0
+GRAVITY_MIN = 1.6
+GRAVITY_MAX = 9.8
 GRAVITY_STEP = 0.1
-FLOOR_HEIGHT = 700
+floor = 460
 
 # Physical constants
 METER_TO_PIXEL = 100  # 1 meter is 100 pixels
-GRAVITY = 9.81  # m/s^2
-APPLE_MASS = 0.1  # kg
-APPLE_RADIUS = 0.1  # m
+APPLE_MASS = 0.2  # mass of the apple in kg
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Apple Fall Simulation')
+# Set up the display
+screen = pygame.display.set_mode((SCREEN_WIDTH + PLOT_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption('Apple Fall Simulation with Plot')
 
+# Font for buttons and text
 font = pygame.font.Font(None, 36)
 
+# Global variables
+simulation_time = 0
+time_scale = 1.0  # Normal speed by default
+
+# Apple class
 class Apple(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.radius = APPLE_RADIUS * METER_TO_PIXEL
-        self.image = pygame.Surface((2*self.radius, 2*self.radius), pygame.SRCALPHA)
-        pygame.draw.circle(self.image, RED, (self.radius, self.radius), self.radius)
+        self.image = pygame.Surface((10, 10))
+        self.image.fill(RED)
         self.rect = self.image.get_rect()
         self.reset()
     
     def reset(self):
-        self.rect.centerx = SIM_WIDTH // 2
-        self.y = 0  # Start at 0 meters (top)
+        self.rect.x = SCREEN_WIDTH // 2
+        self.rect.y = 0
         self.velocity_y = 0
-        self.start_time = time.time()
+        self.start_time = 0
         self.time_stopped = None
         self.positions = []
         self.velocities = []
 
     def update(self, gravity, dt):
+        global simulation_time
         if self.time_stopped is None:
             self.velocity_y += gravity * dt
-            self.y += self.velocity_y * dt
-            self.rect.bottom = FLOOR_HEIGHT - (self.y * METER_TO_PIXEL)
+            self.rect.y += self.velocity_y * dt * METER_TO_PIXEL
+            self.positions.append((simulation_time, (floor - self.rect.y) / METER_TO_PIXEL))
+            self.velocities.append((simulation_time, self.velocity_y))
 
-            current_time = time.time() - self.start_time
-            self.positions.append((current_time, self.y))
-            self.velocities.append((current_time, self.velocity_y))
-
-            if self.rect.bottom >= FLOOR_HEIGHT:
-                self.rect.bottom = FLOOR_HEIGHT
-                self.y = (FLOOR_HEIGHT - self.rect.bottom) / METER_TO_PIXEL
+            if self.rect.y >= floor - self.rect.height:
+                self.rect.y = floor - self.rect.height
                 self.velocity_y = 0
-                self.time_stopped = time.time()
+                self.time_stopped = simulation_time
 
     def get_time_elapsed(self):
-        return self.time_stopped - self.start_time if self.time_stopped else time.time() - self.start_time
+        return simulation_time if self.time_stopped is None else self.time_stopped
 
+# Button class
 class Button:
     def __init__(self, x, y, width, height, text, action):
         self.rect = pygame.Rect(x, y, width, height)
@@ -87,6 +90,7 @@ class Button:
             if pygame.mouse.get_pressed()[0]:
                 self.action()
 
+# Slider class
 class Slider:
     def __init__(self, x, y, width, min_val, max_val, step):
         self.rect = pygame.Rect(x, y, width, 20)
@@ -118,89 +122,113 @@ class Slider:
             self.value = self.min_val + ratio * (self.max_val - self.min_val)
             self.value = round(self.value / self.step) * self.step
 
+# Action functions
 def restart_action():
+    global simulation_time
     apple.reset()
+    simulation_time = 0
 
-def plot_data(positions, velocities):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(4, 6))
-    fig.suptitle('Apple Motion')
+def slow_down_action():
+    global time_scale
+    time_scale = 0.5 if time_scale == 1.0 else 1.0
 
+def plot_positions(positions, velocities):
     times_pos, ypos = zip(*positions)
     times_vel, vel = zip(*velocities)
+    plt.figure(figsize=(8, 6))
 
-    ax1.plot(times_pos, ypos, 'r-')
-    ax1.set_xlabel('Time (s)')
-    ax1.set_ylabel('Height (m)')
-    ax1.set_title('Height vs Time')
-    ax1.grid(True)
+    plt.subplot(2, 1, 1)
+    plt.plot(times_pos, ypos, 'r-')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Position (m)')
+    plt.title('Apple Position Over Time')
+    plt.grid(True)
 
-    ax2.plot(times_vel, vel, 'b-')
-    ax2.set_xlabel('Time (s)')
-    ax2.set_ylabel('Velocity (m/s)')
-    ax2.set_title('Velocity vs Time')
-    ax2.grid(True)
+    plt.subplot(2, 1, 2)
+    plt.plot(times_vel, vel, 'b-')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Velocity (m/s)')
+    plt.title('Apple Velocity Over Time')
+    plt.grid(True)
 
     plt.tight_layout()
-    canvas = FigureCanvasAgg(fig)
-    canvas.draw()
-    renderer = canvas.get_renderer()
-    raw_data = renderer.tostring_rgb()
-    size = canvas.get_width_height()
-    plt.close(fig)
+    plt.savefig('plot.png')
+    plt.close()
 
-    return pygame.image.fromstring(raw_data, size, "RGB")
-
+# Create an apple
 apple = Apple()
-buttons = [Button(50, 750, 200, 40, 'Restart', restart_action)]
-gravity_slider = Slider(300, 760, 200, GRAVITY_MIN, GRAVITY_MAX, GRAVITY_STEP)
-all_sprites = pygame.sprite.Group(apple)
 
+# Create buttons
+buttons = [
+    Button(50, 500, 200, 50, 'Restart', restart_action),
+    Button(300, 500, 200, 50, 'Slow Down', slow_down_action)
+]
+
+# Create slider
+gravity_slider = Slider(550, 510, 200, GRAVITY_MIN, GRAVITY_MAX, GRAVITY_STEP)
+
+# Create a sprite group
+all_sprites = pygame.sprite.Group()
+all_sprites.add(apple)
+
+# Main loop
 running = True
 clock = pygame.time.Clock()
-plot_surface = None
 
 while running:
-    dt = clock.tick(60) / 1000.0  # Time passed in seconds
+    dt = clock.tick(60) / 1000.0 * time_scale  # Time passed in seconds, adjusted for time_scale
+    simulation_time += dt
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         gravity_slider.handle_event(event)
 
+    # Update the apple
     all_sprites.update(gravity_slider.value, dt)
 
+    # Clear the screen
     screen.fill(WHITE)
-    
-    # Draw simulation area
-    pygame.draw.rect(screen, (240, 240, 240), (0, 0, SIM_WIDTH, SCREEN_HEIGHT))
+
+    # Draw all sprites
     all_sprites.draw(screen)
 
+    # Draw buttons
     for button in buttons:
         button.draw(screen)
         button.check_click()
 
+    # Draw slider
     gravity_slider.draw(screen)
 
-    # Draw floor
-    # pygame.draw.rect(screen, BLACK, (0, FLOOR_HEIGHT, SIM_WIDTH, SCREEN_HEIGHT - FLOOR_HEIGHT))
+    # Draw the floor
+    pygame.draw.rect(screen, BLACK, (0, floor, SCREEN_WIDTH, 2))
 
+    # Display time, position, velocity, and mass
     elapsed_time = apple.get_time_elapsed()
     time_text = font.render(f"Time: {elapsed_time:.2f}s", True, BLACK)
-    position_text = font.render(f"Height: {apple.y:.2f}m", True, BLACK)
+    position_text = font.render(f"Position: {(floor - apple.rect.y) / METER_TO_PIXEL:.2f}m", True, BLACK)
     velocity_text = font.render(f"Velocity: {apple.velocity_y:.2f}m/s", True, BLACK)
     gravity_text = font.render(f"Gravity: {gravity_slider.value:.2f}m/s²", True, BLACK)
-    mass_text = font.render(f"Apple Mass: {APPLE_MASS}kg", True, BLACK)
-
+    meter_to_pixel_text = font.render(f"1 meter = {METER_TO_PIXEL} pixels", True, BLACK)
+    mass_text = font.render(f"Apple Mass: {APPLE_MASS} kg", True, BLACK)
+    speed_text = font.render(f"Speed: {'0.5x' if time_scale == 0.5 else '1.0x'}", True, BLACK)
+    
+    screen.blit(gravity_text, (550, 480))
     screen.blit(time_text, (50, 50))
     screen.blit(position_text, (50, 100))
     screen.blit(velocity_text, (50, 150))
-    screen.blit(gravity_text, (300, 730))
-    screen.blit(mass_text, (50, 200))
+    screen.blit(meter_to_pixel_text, (50, 200))
+    screen.blit(mass_text, (50, 250))
+    screen.blit(speed_text, (50, 300))
 
+    # Plot positions
     if apple.positions:
-        plot_surface = plot_data(apple.positions, apple.velocities)
-        screen.blit(plot_surface, (SIM_WIDTH, 0))
+        plot_positions(apple.positions, apple.velocities)
+        plot_img = pygame.image.load('plot.png')
+        screen.blit(plot_img, (SCREEN_WIDTH, 0))
 
+    # Flip the display
     pygame.display.flip()
 
 pygame.quit()

@@ -16,10 +16,13 @@ RED = (255, 0, 0)
 BLACK = (0, 0, 0)
 BUTTON_COLOR = (0, 128, 255)
 BUTTON_HOVER_COLOR = (0, 64, 128)
-GRAVITY_MIN = 9.0  # Minimum gravity to simulate Earth-like conditions
-GRAVITY_MAX = 10.0  # Maximum gravity to simulate Earth-like conditions
+GRAVITY_MIN = 1.6  # Minimum gravity to simulate Earth-like conditions
+GRAVITY_MAX = 9.8  # Maximum gravity to simulate Earth-like conditions
 GRAVITY_STEP = 0.1
-floor = 460
+FLOOR = 460
+# Assuming you have a global variable to track simulation time
+simulation_time = 0
+time_scale = 0.5  # Slow down to half speed
 
 # Physical constants
 METER_TO_PIXEL = 100  # 1 meter is 100 pixels
@@ -52,22 +55,28 @@ class Apple(pygame.sprite.Sprite):
         self.velocities = []
 
     def update(self, gravity):
+        global simulation_time
         if self.time_stopped is None:
-            self.velocity_y += gravity / 60.0  # Convert gravity to pixels per frame
+            self.velocity_y += gravity * (1/60.0) * time_scale  # Adjust gravity by time_scale
             self.rect.y += self.velocity_y  # Update position
-            self.positions.append((time.time() - self.start_time, self.rect.y))
-            self.velocities.append((time.time() - self.start_time, self.velocity_y))
+            # Use simulation_time instead of real time for tracking
+            self.positions.append((simulation_time, self.rect.y))
+            self.velocities.append((simulation_time, self.velocity_y))
 
-            if self.rect.y >= floor - self.rect.height:
-                self.rect.y = floor - self.rect.height
+            if self.rect.y >= FLOOR - self.rect.height:
+                self.rect.y = FLOOR - self.rect.height
                 self.velocity_y = 0
-                self.time_stopped = time.time()
+                self.time_stopped = simulation_time
 
     def get_time_elapsed(self):
         if self.time_stopped:
             return self.time_stopped - self.start_time
         else:
             return time.time() - self.start_time
+
+def slow_down_action():
+    global time_scale
+    time_scale *= 0.5  # Halve the time_scale to slow down the simulation
 
 # Button class
 class Button:
@@ -123,11 +132,10 @@ class Slider:
 
 # Action functions
 def restart_action():
+    global simulation_time, time_scale
+    simulation_time = 0  # Reset simulation time
+    time_scale = 0.5  # Reset time scale
     apple.reset()
-
-def slow_down_action():
-    global clock
-    clock.tick(10)
 
 def plot_positions(positions, velocities):
     times_pos, ypos = zip(*positions)
@@ -136,7 +144,7 @@ def plot_positions(positions, velocities):
 
     # Plot position
     plt.subplot(2, 1, 1)
-    plt.plot(times_pos, [(floor - y) / METER_TO_PIXEL for y in ypos], 'r-')  # Adjust y to make floor y=0
+    plt.plot(times_pos, [(FLOOR - y) / METER_TO_PIXEL for y in ypos], 'r-')  # Adjust y to make floor y=0
     plt.xlabel('Time (s)')
     plt.ylabel('Position (m)')
     plt.title('Apple Position Over Time')
@@ -198,7 +206,7 @@ while running:
     gravity_slider.draw(screen)
 
     # Draw the floor
-    pygame.draw.rect(screen, BLACK, (0, floor, SCREEN_WIDTH, 2))
+    pygame.draw.rect(screen, BLACK, (0, FLOOR, SCREEN_WIDTH, 2))
 
     # Display time, position, velocity, and mass
     elapsed_time = apple.get_time_elapsed()
