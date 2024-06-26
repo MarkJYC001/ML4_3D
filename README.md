@@ -29,17 +29,6 @@ Engineing Prospective:
 2. 3D film
 
 
-Research prospective:
-1. 视觉角度的生成: 3D reconstruction + NERF -- > 没有碰撞，近似饱和:https://jonbarron.info/zipnerf/
-2. 3D 重建：几何信息-->mesh :picture  > pose > feature point > sparse 3D point > more accurate point > ponit cloud > SDF(structure for motion)
-   -> Algorithm: Mesh;
-   -> Not accurate + bias + time comsuming
-3. Not picture based: RGB + laser
-4. Robotic : 理解碰撞 + 结束 + 决策 RL
-
-5. Therefore: --> many picutures --> time cheap + 
-
-   
 Candidate Baseline:
 Projection:arXiv:2204.10776v2 [cs.CV] 27 Jan 2023
 Generation:https://www.bilibili.com/video/BV1Yr421775V/?spm_id_from=333.1007.top_right_bar_window_history.content.click&vd_source=c2f7388c7b279132a2d3049f97303966
