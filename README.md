@@ -5,6 +5,7 @@
 
 ## This is a pipeline that we currently want to achieve, and we welcome to make it better.😄
 
+Engineing Prospective:
  * Expected Input: 2D 照片 
  * Expected Output: 3D 场景及物理推理
  1. projection投射：
@@ -22,9 +23,23 @@
 	      	- b. 物理系统（动）
  		- c. 呈现方式:可视/仿真（色彩）
 
+
+最终：
+1. 物理实验
+2. 3D film
+
+
+Research prospective:
+1. 视觉角度的生成: 3D reconstruction + NERF -- > 近似饱和
+2. 
+
+3. 
 Candidate Baseline:
 Projection:arXiv:2204.10776v2 [cs.CV] 27 Jan 2023
 Generation:https://www.bilibili.com/video/BV1Yr421775V/?spm_id_from=333.1007.top_right_bar_window_history.content.click&vd_source=c2f7388c7b279132a2d3049f97303966
+
+
+
 
 Generation:欢迎补充！
 
